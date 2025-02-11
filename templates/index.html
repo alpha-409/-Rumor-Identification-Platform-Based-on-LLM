@@ -61,17 +61,64 @@
             padding: 15px;
             border-bottom: 1px solid #eee;
             display: flex;
-            justify-content: space-between;
+            gap: 15px;
+        }
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .topic-content {
+            flex: 1;
+        }
+        .topic-header {
+            display: flex;
             align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            color: #666;
+            font-size: 14px;
+        }
+        .user-name {
+            font-weight: bold;
+            color: #1a73e8;
+            font-size: 16px;
+        }
+        .post-time {
+            color: #666;
+        }
+        .source {
+            color: #666;
         }
         .topic-text {
-            flex: 1;
+            margin-bottom: 10px;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .topic-images {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        .topic-image {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .topic-image:hover {
+            transform: scale(1.02);
         }
         .topic-stats {
             display: flex;
             gap: 15px;
             color: #666;
             font-size: 14px;
+            margin-top: 10px;
         }
         .loading {
             text-align: center;
@@ -109,11 +156,29 @@
 
         <ul v-else class="topics-list">
             <li v-for="topic in topics" :key="topic.id" class="topic-item">
-                <div class="topic-text">[[topic.text]]</div>
-                <div class="topic-stats">
-                    <span>转发: [[topic.reposts_count]]</span>
-                    <span>评论: [[topic.comments_count]]</span>
-                    <span>点赞: [[topic.attitudes_count]]</span>
+                <img :src="topic.user_avatar" :alt="topic.user_name" class="user-avatar" @error="handleImageError">
+                <div class="topic-content">
+                    <div class="topic-header">
+                        <span class="user-name">[[topic.user_name]]</span>
+                        <span class="post-time">[[topic.created_at]]</span>
+                        <span class="source">来自 [[topic.source]]</span>
+                    </div>
+                    <div class="topic-text">[[topic.text]]</div>
+                    <div v-if="topic.images" class="topic-images">
+                        <img v-for="image in topic.images.split('|')" 
+                             :key="image" 
+                             :src="image" 
+                             class="topic-image"
+                             @click="openImage(image)"
+                             @error="handleImageError"
+                             alt="帖子图片">
+                    </div>
+                    <div class="topic-stats">
+                        <span>转发: [[topic.reposts_count]]</span>
+                        <span>评论: [[topic.comments_count]]</span>
+                        <span>点赞: [[topic.attitudes_count]]</span>
+                        <span>粉丝: [[topic.user_followers_count]]</span>
+                    </div>
                 </div>
             </li>
         </ul>
@@ -128,7 +193,8 @@
                 return {
                     topics: [],
                     loading: false,
-                    error: null
+                    error: null,
+                    defaultAvatar: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23999"><circle cx="12" cy="8" r="5"/><path d="M3,21c0-4.4,3.6-8,8-8h2c4.4,0,8,3.6,8,8"/></svg>'
                 }
             },
             methods: {
@@ -143,6 +209,12 @@
                     } finally {
                         this.loading = false
                     }
+                },
+                openImage(url) {
+                    window.open(url, '_blank')
+                },
+                handleImageError(event) {
+                    event.target.src = this.defaultAvatar
                 }
             },
             mounted() {

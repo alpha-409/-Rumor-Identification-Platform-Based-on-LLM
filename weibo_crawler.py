@@ -33,14 +33,29 @@ def fetch_weibo_hot_topics():
         # Prepare data for CSV
         processed_data = []
         for status in statuses:
+            user = status.get('user', {})
+            # 获取图片URLs
+            pic_urls = []
+            if 'pic_infos' in status:
+                for pic_id in status['pic_infos']:
+                    pic_url = status['pic_infos'][pic_id].get('largest', {}).get('url', '')
+                    if pic_url:
+                        pic_urls.append(pic_url)
+            
             processed_data.append({
                 'id': status.get('id'),
                 'text': status.get('text_raw', ''),
-                'created_at': status.get('created_at', ''),
+                'created_at': datetime.strptime(status.get('created_at', ''), '%a %b %d %H:%M:%S %z %Y').strftime('%Y-%m-%d %H:%M:%S'),
                 'reposts_count': status.get('reposts_count', 0),
                 'comments_count': status.get('comments_count', 0),
                 'attitudes_count': status.get('attitudes_count', 0),
-                'source': status.get('source', '')
+                'source': status.get('source', ''),
+                'user_id': user.get('id', ''),
+                'user_name': user.get('screen_name', ''),
+                'user_avatar': user.get('profile_image_url', ''),
+                'user_followers_count': user.get('followers_count', 0),
+                'user_friends_count': user.get('friends_count', 0),
+                'images': '|'.join(pic_urls) if pic_urls else ''
             })
         
         return processed_data
@@ -52,25 +67,38 @@ def fetch_weibo_hot_topics():
         print(f"Error parsing JSON response: {e}")
         return None
 
-def save_to_csv(data, filename=None):
+def save_to_csv(data, filepath='data/weibo_hot_topics.csv'):
     if not data:
         print("No data to save")
         return
     
-    if filename is None:
-        # Create filename with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'weibo_hot_topics_{timestamp}.csv'
-    
     # Create data directory if it doesn't exist
     os.makedirs('data', exist_ok=True)
-    filepath = os.path.join('data', filename)
     
-    # Convert to DataFrame and save to CSV
-    df = pd.DataFrame(data)
-    df.to_csv(filepath, index=False, encoding='utf-8-sig')
-    print(f"Data saved to {filepath}")
-    return filepath
+    # Convert new data to DataFrame
+    new_df = pd.DataFrame(data)
+    
+    try:
+        # Try to read existing CSV file
+        if os.path.exists(filepath):
+            existing_df = pd.read_csv(filepath)
+            # Combine existing and new data
+            combined_df = pd.concat([existing_df, new_df])
+            # Drop duplicates based on id
+            combined_df.drop_duplicates(subset=['id'], keep='last', inplace=True)
+        else:
+            combined_df = new_df
+        
+        # Sort by created_at in descending order
+        combined_df.sort_values('created_at', ascending=False, inplace=True)
+        
+        # Save to CSV
+        combined_df.to_csv(filepath, index=False, encoding='utf-8-sig')
+        print(f"Data saved to {filepath}")
+        return filepath
+    except Exception as e:
+        print(f"Error saving data: {e}")
+        return None
 
 def main():
     # Fetch data from Weibo
