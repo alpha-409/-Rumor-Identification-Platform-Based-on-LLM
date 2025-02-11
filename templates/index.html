@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>谣言识别和舆情分析平台</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #1a73e8;
+            margin-bottom: 10px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .btn {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #1557b0;
+        }
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .topics-list {
+            list-style: none;
+        }
+        .topic-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .topic-text {
+            flex: 1;
+        }
+        .topic-stats {
+            display: flex;
+            gap: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .error {
+            color: #dc3545;
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <div class="header">
+            <h1>谣言识别和舆情分析平台</h1>
+            <p>实时获取微博热门话题，进行谣言识别和舆情分析</p>
+        </div>
+
+        <div class="controls">
+            <button @click="fetchHotTopics" :disabled="loading" class="btn">
+                [[loading ? '获取中...' : '获取最新热门话题']]
+            </button>
+        </div>
+
+        <div v-if="error" class="error">
+            [[error]]
+        </div>
+
+        <div v-if="loading" class="loading">
+            加载中...
+        </div>
+
+        <ul v-else class="topics-list">
+            <li v-for="topic in topics" :key="topic.id" class="topic-item">
+                <div class="topic-text">[[topic.text]]</div>
+                <div class="topic-stats">
+                    <span>转发: [[topic.reposts_count]]</span>
+                    <span>评论: [[topic.comments_count]]</span>
+                    <span>点赞: [[topic.attitudes_count]]</span>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            delimiters: ['[[', ']]'],
+            data() {
+                return {
+                    topics: [],
+                    loading: false,
+                    error: null
+                }
+            },
+            methods: {
+                async fetchHotTopics() {
+                    this.loading = true
+                    this.error = null
+                    try {
+                        const response = await axios.get('/api/fetch-hot-topics')
+                        this.topics = response.data.data
+                    } catch (error) {
+                        this.error = '获取数据失败: ' + (error.response?.data?.message || error.message)
+                    } finally {
+                        this.loading = false
+                    }
+                }
+            },
+            mounted() {
+                this.fetchHotTopics()
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
