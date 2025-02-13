@@ -41,7 +41,7 @@ def scrape_data():
         print(f"Error scraping data: {e}")
 
 # Schedule the scraper to run every 10 seconds
-scheduler.add_job(scrape_data, 'interval', seconds=5)
+scheduler.add_job(scrape_data, 'interval', seconds=10)
 
 @app.route('/')
 def index():

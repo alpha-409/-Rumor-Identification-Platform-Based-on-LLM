@@ -22,7 +22,7 @@ class WeiboScraper:
             "containerid": "102803",
             "extparam": "discover|new_feed",
             "max_id": "0",
-            "count": "30"
+            "count": "10"
         }
         
         try:
