@@ -83,8 +83,15 @@
         <div class="row">
             <div class="col-12">
                 <div class="analysis-card">
-                    <h2>热点词云</h2>
-                    <p>展示微博内容中的热点词汇</p>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h2 class="mb-0">热点词云</h2>
+                            <p class="mb-0">展示微博内容中的热点词汇</p>
+                        </div>
+                        <button class="btn btn-outline-primary" onclick="showBlockedWordsModal()">
+                            管理屏蔽词
+                        </button>
+                    </div>
                     <div class="chart-container" id="wordCloudChart"></div>
                 </div>
             </div>
@@ -365,6 +372,151 @@
             wordCloudChart.resize();
             timeHeatmap.resize();
             hourlyTrend.resize();
+        });
+    </script>
+    <!-- 屏蔽词管理模态框 -->
+    <div class="modal fade" id="blockedWordsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">管理屏蔽词</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">添加新屏蔽词</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="newBlockedWord" placeholder="输入要屏蔽的词">
+                            <button class="btn btn-primary" onclick="addBlockedWord()">添加</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">当前屏蔽词列表</label>
+                        <div id="blockedWordsList" class="d-flex flex-wrap gap-2">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .blocked-word-tag {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin: 2px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .blocked-word-tag .remove-word {
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 14px;
+        }
+    </style>
+
+    <script>
+        // 屏蔽词管理相关函数
+        let blockedWordsModal;
+        let currentBlockedWords = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            blockedWordsModal = new bootstrap.Modal(document.getElementById('blockedWordsModal'));
+            loadBlockedWords();
+        });
+
+        async function loadBlockedWords() {
+            try {
+                const response = await fetch('/analysis/blocked_words');
+                const data = await response.json();
+                if (data.success) {
+                    currentBlockedWords = data.blocked_words;
+                    updateBlockedWordsList();
+                }
+            } catch (error) {
+                console.error('加载屏蔽词失败:', error);
+            }
+        }
+
+        function showBlockedWordsModal() {
+            loadBlockedWords();
+            blockedWordsModal.show();
+        }
+
+        function updateBlockedWordsList() {
+            const container = document.getElementById('blockedWordsList');
+            container.innerHTML = '';
+            currentBlockedWords.forEach(word => {
+                const tag = document.createElement('div');
+                tag.className = 'blocked-word-tag';
+                tag.innerHTML = `
+                    ${word}
+                    <span class="remove-word" onclick="removeBlockedWord('${word}')">&times;</span>
+                `;
+                container.appendChild(tag);
+            });
+        }
+
+        async function addBlockedWord() {
+            const input = document.getElementById('newBlockedWord');
+            const word = input.value.trim();
+            if (!word) return;
+
+            try {
+                const response = await fetch('/analysis/blocked_words', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        words: [word]
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    currentBlockedWords = data.blocked_words;
+                    updateBlockedWordsList();
+                    input.value = '';
+                    // 重新加载词云
+                    loadChartData();
+                }
+            } catch (error) {
+                console.error('添加屏蔽词失败:', error);
+            }
+        }
+
+        async function removeBlockedWord(word) {
+            const newList = currentBlockedWords.filter(w => w !== word);
+            try {
+                const response = await fetch('/analysis/blocked_words', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        words: newList
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    currentBlockedWords = data.blocked_words;
+                    updateBlockedWordsList();
+                    // 重新加载词云
+                    loadChartData();
+                }
+            } catch (error) {
+                console.error('移除屏蔽词失败:', error);
+            }
+        }
+
+        // 给新屏蔽词输入框添加回车键监听
+        document.getElementById('newBlockedWord')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addBlockedWord();
+            }
         });
     </script>
 </body>
