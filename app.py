@@ -47,6 +47,10 @@ scheduler.add_job(scrape_data, 'interval', seconds=10)
 def index():
     return render_template('index.html')
 
+@app.route('/analysis')
+def analysis():
+    return render_template('analysis.html')
+
 @app.route('/refresh')
 def refresh_data():
     try:

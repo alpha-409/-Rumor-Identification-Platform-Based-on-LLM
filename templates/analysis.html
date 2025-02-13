@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据分析 - 微博热门</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .nav-tabs {
+            background-color: white;
+            padding-top: 1rem;
+            border-bottom: none;
+        }
+        .nav-tabs .nav-link {
+            color: #86909c;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            margin-right: 1rem;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link:hover {
+            color: #ff8200;
+            background-color: rgba(255, 130, 0, 0.1);
+        }
+        .nav-tabs .nav-link.active {
+            color: white;
+            background-color: #ff8200;
+        }
+        .nav-container {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1000;
+            border-bottom: 1px solid #e6ecf0;
+            margin-bottom: 20px;
+            padding: 0 1rem;
+        }
+        body {
+            background-color: #f7f8fa;
+            padding-bottom: 40px;
+        }
+        .container {
+            max-width: 1200px;
+        }
+        .analysis-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .analysis-card h2 {
+            color: #1d2129;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .chart-container {
+            min-height: 300px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="nav-container">
+        <div class="container">
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">微博实况</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/analysis">数据分析</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="analysis-card">
+                    <h2>数据概览</h2>
+                    <p>此页面正在开发中，将展示微博数据的分析内容</p>
+                    <div class="chart-container">
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-chart-line fa-3x mb-3"></i>
+                            <p>数据图表将在这里展示</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
