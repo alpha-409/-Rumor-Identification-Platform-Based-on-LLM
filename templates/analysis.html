@@ -56,8 +56,8 @@
             margin-bottom: 1rem;
         }
         .chart-container {
-            min-height: 300px;
-            background-color: #f8f9fa;
+            height: 400px;
+            background-color: white;
             border-radius: 8px;
             padding: 1rem;
             margin-top: 1rem;
@@ -83,19 +83,215 @@
         <div class="row">
             <div class="col-12">
                 <div class="analysis-card">
-                    <h2>数据概览</h2>
-                    <p>此页面正在开发中，将展示微博数据的分析内容</p>
-                    <div class="chart-container">
-                        <div class="text-center text-muted py-5">
-                            <i class="fas fa-chart-line fa-3x mb-3"></i>
-                            <p>数据图表将在这里展示</p>
-                        </div>
-                    </div>
+                    <h2>热点词云</h2>
+                    <p>展示微博内容中的热点词汇</p>
+                    <div class="chart-container" id="wordCloudChart"></div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="analysis-card">
+                    <h2>时间分布热力图</h2>
+                    <p>展示一周内不同时段的微博活跃度</p>
+                    <div class="chart-container" id="timeHeatmap"></div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="analysis-card">
+                    <h2>每日时段分布</h2>
+                    <p>展示24小时内微博发布趋势</p>
+                    <div class="chart-container" id="hourlyTrend"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script>
+        // 初始化图表
+        const wordCloudChart = echarts.init(document.getElementById('wordCloudChart'));
+        const timeHeatmap = echarts.init(document.getElementById('timeHeatmap'));
+        const hourlyTrend = echarts.init(document.getElementById('hourlyTrend'));
+
+        // 词云图配置
+        const wordCloudOption = {
+            tooltip: {
+                show: true
+            },
+            series: [{
+                type: 'wordCloud',
+                shape: 'circle',
+                left: 'center',
+                top: 'center',
+                width: '90%',
+                height: '90%',
+                right: null,
+                bottom: null,
+                sizeRange: [12, 60],
+                rotationRange: [-45, 45],
+                rotationStep: 45,
+                gridSize: 8,
+                drawOutOfBound: false,
+                textStyle: {
+                    fontFamily: 'sans-serif',
+                    fontWeight: 'bold',
+                    color: function () {
+                        return 'rgb(' + [
+                            Math.round(Math.random() * 160 + 95),
+                            Math.round(Math.random() * 160 + 95),
+                            Math.round(Math.random() * 160 + 95)
+                        ].join(',') + ')';
+                    }
+                },
+                emphasis: {
+                    focus: 'self',
+                    textStyle: {
+                        shadowBlur: 10,
+                        shadowColor: '#333'
+                    }
+                },
+                data: []
+            }]
+        };
+
+        // 热力图配置
+        const heatmapOption = {
+            tooltip: {
+                position: 'top',
+                formatter: function (params) {
+                    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+                    return weekdays[params.data[1]] + ' ' + 
+                           params.data[0] + ':00 - ' + (params.data[0] + 1) + ':00<br/>' +
+                           '发布数: ' + params.data[2];
+                }
+            },
+            grid: {
+                top: '15%',
+                right: '10%'
+            },
+            xAxis: {
+                type: 'category',
+                data: Array.from({length: 24}, (_, i) => i + ':00'),
+                splitArea: {
+                    show: true
+                }
+            },
+            yAxis: {
+                type: 'category',
+                data: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
+                splitArea: {
+                    show: true
+                }
+            },
+            visualMap: {
+                min: 0,
+                max: 10,
+                calculable: true,
+                orient: 'horizontal',
+                left: 'center',
+                top: '0%',
+                inRange: {
+                    color: ['#e5f5e0', '#31a354']
+                }
+            },
+            series: [{
+                name: '发布数量',
+                type: 'heatmap',
+                data: [],
+                label: {
+                    show: false
+                },
+                emphasis: {
+                    itemStyle: {
+                        shadowBlur: 10,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    }
+                }
+            }]
+        };
+
+        // 时段分布图配置
+        const hourlyTrendOption = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: Array.from({length: 24}, (_, i) => i + ':00'),
+                axisLabel: {
+                    interval: 2
+                }
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [{
+                name: '发布数量',
+                type: 'bar',
+                data: [],
+                itemStyle: {
+                    color: '#ff8200'
+                },
+                emphasis: {
+                    itemStyle: {
+                        color: '#e67300'
+                    }
+                }
+            }]
+        };
+
+        // 加载数据并渲染图表
+        async function loadChartData() {
+            try {
+                // 加载词云数据
+                const wordcloudResponse = await fetch('/analysis/wordcloud');
+                const wordcloudData = await wordcloudResponse.json();
+                if (wordcloudData.success) {
+                    wordCloudOption.series[0].data = wordcloudData.data;
+                    wordCloudChart.setOption(wordCloudOption);
+                }
+
+                // 加载时间分布数据
+                const timeResponse = await fetch('/analysis/time_distribution');
+                const timeData = await timeResponse.json();
+                if (timeData.success) {
+                    heatmapOption.series[0].data = timeData.data;
+                    // 更新visualMap的最大值
+                    const maxValue = Math.max(...timeData.data.map(item => item[2]));
+                    heatmapOption.visualMap.max = maxValue;
+                    timeHeatmap.setOption(heatmapOption);
+                }
+
+                // 加载小时趋势数据
+                const hourlyResponse = await fetch('/analysis/hourly_trend');
+                const hourlyData = await hourlyResponse.json();
+                if (hourlyData.success) {
+                    hourlyTrendOption.series[0].data = hourlyData.data.counts;
+                    hourlyTrend.setOption(hourlyTrendOption);
+                }
+            } catch (error) {
+                console.error('加载数据失败:', error);
+            }
+        }
+
+        // 初始加载
+        loadChartData();
+
+        // 窗口大小改变时重绘图表
+        window.addEventListener('resize', function() {
+            wordCloudChart.resize();
+            timeHeatmap.resize();
+            hourlyTrend.resize();
+        });
+    </script>
 </body>
 </html>

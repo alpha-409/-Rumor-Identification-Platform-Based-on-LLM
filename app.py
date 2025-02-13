@@ -5,6 +5,9 @@ import pandas as pd
 from datetime import datetime
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
+import jieba
+from collections import Counter
+import numpy as np
 
 app = Flask(__name__)
 
@@ -50,6 +53,71 @@ def index():
 @app.route('/analysis')
 def analysis():
     return render_template('analysis.html')
+
+@app.route('/analysis/wordcloud')
+def get_wordcloud_data():
+    try:
+        df = pd.read_csv('weibo_data.csv')
+        # 合并所有文本
+        text = ' '.join(df['text'].astype(str))
+        # 使用结巴分词
+        words = jieba.cut(text)
+        # 过滤停用词和特殊字符
+        stop_words = {'的', '了', '在', '是', '我', '你', '他', '她', '它', '这', '那', '和', '与', '就', '都', '而', '且', '但', '转发', '微博', '啊', '吧', '呢', '哦', '哈', ' '}
+        words = [word for word in words if len(word) > 1 and word not in stop_words]
+        # 统计词频
+        word_freq = Counter(words).most_common(100)
+        # 构造词云数据
+        word_cloud_data = [{"name": word, "value": count} for word, count in word_freq]
+        return jsonify({"success": True, "data": word_cloud_data})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
+@app.route('/analysis/time_distribution')
+def get_time_distribution():
+    try:
+        df = pd.read_csv('weibo_data.csv')
+        df['created_at'] = pd.to_datetime(df['created_at'])
+        df['hour'] = df['created_at'].dt.hour
+        df['weekday'] = df['created_at'].dt.weekday
+        
+        # 创建7x24的时间分布矩阵
+        time_matrix = np.zeros((7, 24))
+        for _, row in df.iterrows():
+            time_matrix[row['weekday']][row['hour']] += 1
+        
+        # 构造热力图数据
+        heatmap_data = []
+        for week in range(7):
+            for hour in range(24):
+                heatmap_data.append([hour, week, int(time_matrix[week][hour])])
+        
+        return jsonify({
+            "success": True,
+            "data": heatmap_data
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
+@app.route('/analysis/hourly_trend')
+def get_hourly_trend():
+    try:
+        df = pd.read_csv('weibo_data.csv')
+        df['created_at'] = pd.to_datetime(df['created_at'])
+        df['hour'] = df['created_at'].dt.hour
+        
+        # 统计每小时的帖子数
+        hourly_counts = df['hour'].value_counts().sort_index()
+        
+        return jsonify({
+            "success": True,
+            "data": {
+                "hours": list(range(24)),
+                "counts": [int(hourly_counts.get(hour, 0)) for hour in range(24)]
+            }
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
 
 @app.route('/refresh')
 def refresh_data():
