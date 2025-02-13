@@ -3,351 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>谣言识别和舆情分析平台</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <title>微博热门</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* [Previous styles remain unchanged] */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        .loading {
+            display: none;
         }
-        body {
-            font-family: 'Microsoft YaHei', sans-serif;
-            line-height: 1.6;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .header h1 {
-            color: #1a73e8;
-            margin-bottom: 10px;
-        }
-        .controls {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 10px;
-        }
-        .btn {
-            background-color: #1a73e8;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            min-width: 160px;
-            transition: background-color 0.3s;
-        }
-        .btn:hover {
-            background-color: #1557b0;
-        }
-        .btn:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        .btn-auto {
-            background-color: #34a853;
-        }
-        .btn-auto:hover {
-            background-color: #2d8746;
-        }
-        .btn-auto.active {
-            background-color: #dc3545;
-        }
-        .refresh-status {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
-            background-color: #f8f9fa;
-            padding: 8px;
-            border-radius: 4px;
+        .loading.active {
             display: inline-block;
         }
-        .refresh-info {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            margin-top: 10px;
-            flex-wrap: wrap;
+        .weibo-post {
+            border: 1px solid #e6ecf0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
-        /* [Previous list and content styles remain unchanged] */
-        .topics-list {
-            list-style: none;
+        .weibo-post:hover {
+            background: #f8f9fa;
         }
-        .topic-item {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
+        .user-info {
             display: flex;
-            gap: 15px;
+            align-items: center;
+            margin-bottom: 12px;
         }
         .user-avatar {
             width: 48px;
             height: 48px;
             border-radius: 50%;
-            flex-shrink: 0;
-            background-color: #f5f5f5;
-            object-fit: cover;
-        }
-        .topic-content {
-            flex: 1;
-        }
-        .topic-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
-            color: #666;
-            font-size: 14px;
+            margin-right: 12px;
+            border: 1px solid #e6ecf0;
         }
         .user-name {
             font-weight: bold;
-            color: #1a73e8;
-            font-size: 16px;
+            color: #1d2129;
+            margin-bottom: 2px;
         }
         .post-time {
-            color: #666;
-            white-space: nowrap;
-        }
-        .source {
-            color: #666;
-        }
-        .topic-text {
-            margin-bottom: 10px;
-            font-size: 15px;
-            line-height: 1.6;
-        }
-        .topic-images {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin: 10px 0;
-        }
-        .topic-image {
-            width: 150px;
-            height: 150px;
-            object-fit: cover;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: transform 0.2s;
-            background-color: #f5f5f5;
-        }
-        .topic-image:hover {
-            transform: scale(1.02);
-        }
-        .topic-stats {
-            display: flex;
-            gap: 15px;
-            color: #666;
+            color: #86909c;
             font-size: 14px;
-            margin-top: 10px;
         }
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
+        .post-content {
+            margin-bottom: 16px;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #1d2129;
+            word-wrap: break-word;
         }
-        .error {
-            color: #dc3545;
-            text-align: center;
-            padding: 10px;
-            margin-bottom: 10px;
-            background-color: #fff3f3;
+        .interaction-bar {
+            display: flex;
+            justify-content: space-around;
+            padding-top: 12px;
+            border-top: 1px solid #e6ecf0;
+            margin: 0 -10px;
+        }
+        .interaction-item {
+            display: flex;
+            align-items: center;
+            color: #86909c;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 8px 16px;
             border-radius: 4px;
+            transition: all 0.2s;
         }
-        .image-loading {
-            opacity: 0.5;
+        .interaction-item:hover {
+            color: #ff8200;
+            background-color: rgba(255, 130, 0, 0.1);
+        }
+        .interaction-item i {
+            margin-right: 6px;
+            font-size: 16px;
+        }
+        .refresh-section {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 16px 0;
+            z-index: 100;
+            border-bottom: 1px solid #e6ecf0;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        body {
+            background-color: #f7f8fa;
+            padding-bottom: 40px;
+        }
+        .container {
+            max-width: 600px;
+        }
+        .btn-primary {
+            background-color: #ff8200;
+            border-color: #ff8200;
+            border-radius: 20px;
+            padding: 8px 20px;
+        }
+        .btn-primary:hover, .btn-primary:focus {
+            background-color: #e67300;
+            border-color: #e67300;
         }
     </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <div id="app" class="container">
-        <div class="header">
-            <h1>谣言识别和舆情分析平台</h1>
-            <p>实时获取微博热门话题，进行谣言识别和舆情分析</p>
-        </div>
-
-        <div class="controls">
-            <div class="btn-group">
-                <button @click="fetchHotTopics" 
-                        :disabled="loading || autoRefreshing" 
-                        class="btn"
-                        title="手动获取最新数据">
-                    [[loading ? '获取中...' : '获取最新热门话题']]
-                </button>
-                <button @click="toggleAutoRefresh" 
-                        :class="['btn', 'btn-auto', { active: autoRefreshing }]"
-                        :title="autoRefreshing ? '点击停止自动更新' : '每60秒自动获取一次新数据'">
-                    [[ autoRefreshing ? '停止自动更新' : '开启自动更新' ]]
-                </button>
-            </div>
-            <div class="refresh-info" v-if="autoRefreshing || refreshCount > 0">
-                <div v-if="autoRefreshing" class="refresh-status">
-                    下次更新时间: [[nextRefreshTime]]
-                </div>
-                <div v-if="refreshCount > 0" class="refresh-status">
-                    已自动更新 [[refreshCount]] 次 | 累计获取 [[totalTopics]] 条数据 | 已去重保存至CSV
+    <div class="container mt-4">
+        <div class="refresh-section">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0">微博热门时间线</h1>
+                <div>
+                    <button id="refreshBtn" class="btn btn-primary">
+                        <i class="fas fa-sync-alt me-1"></i>
+                        <span class="spinner-border spinner-border-sm loading" role="status"></span>
+                        刷新数据
+                    </button>
+                    <span class="ms-3 text-muted">最后更新: <span id="lastUpdated">-</span></span>
                 </div>
             </div>
         </div>
 
-        <div v-if="error" class="error">
-            [[error]]
+        <div id="weiboData" class="mt-4">
+            <!-- Weibo posts will be inserted here -->
         </div>
-
-        <div v-if="loading" class="loading">
-            加载中...
-        </div>
-
-        <ul v-else class="topics-list">
-            <li v-for="topic in topics" :key="topic.id" class="topic-item">
-                <img :src="proxyImageUrl(topic.user_avatar)" 
-                     :alt="topic.user_name" 
-                     class="user-avatar"
-                     :class="{'image-loading': isImageLoading}"
-                     @error="handleImageError($event, 'avatar')"
-                     @load="handleImageLoad">
-                <div class="topic-content">
-                    <div class="topic-header">
-                        <span class="user-name">[[topic.user_name]]</span>
-                        <span class="post-time">[[topic.created_at]]</span>
-                        <span class="source">来自 [[topic.source]]</span>
-                    </div>
-                    <div class="topic-text">[[topic.text]]</div>
-                    <div v-if="topic.images" class="topic-images">
-                        <img v-for="image in topic.images.split('|')" 
-                             :key="image" 
-                             :src="proxyImageUrl(image)" 
-                             class="topic-image"
-                             :class="{'image-loading': isImageLoading}"
-                             @click="openImage(image)"
-                             @error="handleImageError($event, 'content')"
-                             @load="handleImageLoad"
-                             alt="帖子图片">
-                    </div>
-                    <div class="topic-stats">
-                        <span>转发: [[topic.reposts_count]]</span>
-                        <span>评论: [[topic.comments_count]]</span>
-                        <span>点赞: [[topic.attitudes_count]]</span>
-                        <span>粉丝: [[topic.user_followers_count]]</span>
-                    </div>
-                </div>
-            </li>
-        </ul>
     </div>
 
     <script>
-        const { createApp } = Vue
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
 
-        createApp({
-            delimiters: ['[[', ']]'],
-            data() {
-                return {
-                    topics: [],
-                    loading: false,
-                    error: null,
-                    isImageLoading: true,
-                    autoRefreshing: false,
-                    refreshInterval: null,
-                    nextRefreshTime: '',
-                    refreshCount: 0,
-                    totalTopics: 0,
-                    defaultAvatar: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23999"><circle cx="12" cy="8" r="5"/><path d="M3,21c0-4.4,3.6-8,8-8h2c4.4,0,8,3.6,8,8"/></svg>',
-                    defaultImage: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23999"><path d="M21,19V5c0-1.1-0.9-2-2-2H5C3.9,3,3,3.9,3,5v14c0,1.1,0.9,2,2,2h14C20.1,21,21,20.1,21,19z M8.5,13.5l2.5,3l3.5-4.5l4.5,6H5l3.5-4.5z"/></svg>'
-                }
-            },
-            methods: {
-                async fetchHotTopics() {
-                    this.loading = true
-                    this.error = null
-                    try {
-                        const response = await axios.get('/api/fetch-hot-topics')
-                        this.topics = response.data.data
-                        if (this.autoRefreshing) {
-                            this.refreshCount++
-                            this.totalTopics += this.topics.length
-                        }
-                    } catch (error) {
-                        this.error = '获取数据失败: ' + (error.response?.data?.message || error.message)
-                        this.stopAutoRefresh()
-                    } finally {
-                        this.loading = false
-                        this.updateNextRefreshTime()
-                    }
-                },
-                toggleAutoRefresh() {
-                    if (this.autoRefreshing) {
-                        this.stopAutoRefresh()
-                    } else {
-                        this.startAutoRefresh()
-                    }
-                },
-                startAutoRefresh() {
-                    this.autoRefreshing = true
-                    this.refreshCount = 0
-                    this.totalTopics = 0
-                    this.fetchHotTopics()
-                    this.refreshInterval = setInterval(() => {
-                        this.fetchHotTopics()
-                    }, 60000) // 每60秒刷新一次
-                    this.updateNextRefreshTime()
-                },
-                stopAutoRefresh() {
-                    this.autoRefreshing = false
-                    if (this.refreshInterval) {
-                        clearInterval(this.refreshInterval)
-                        this.refreshInterval = null
-                    }
-                    this.nextRefreshTime = ''
-                },
-                updateNextRefreshTime() {
-                    if (this.autoRefreshing) {
-                        const next = new Date(Date.now() + 60000)
-                        this.nextRefreshTime = next.toLocaleTimeString('zh-CN', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit'
-                        })
-                    }
-                },
-                proxyImageUrl(url) {
-                    if (!url) return this.defaultImage
-                    return `/api/proxy-image?url=${encodeURIComponent(url)}`
-                },
-                openImage(url) {
-                    window.open(url, '_blank')
-                },
-                handleImageError(event, type = 'avatar') {
-                    event.target.src = type === 'avatar' ? this.defaultAvatar : this.defaultImage
-                },
-                handleImageLoad() {
-                    this.isImageLoading = false
-                }
-            },
-            mounted() {
-                this.fetchHotTopics()
-            },
-            beforeUnmount() {
-                this.stopAutoRefresh()
+            if (minutes < 1) return '刚刚';
+            if (minutes < 60) return `${minutes}分钟前`;
+            if (hours < 24) return `${hours}小时前`;
+            if (days < 30) return `${days}天前`;
+            return date.toLocaleDateString('zh-CN');
+        }
+
+        function formatNumber(num) {
+            if (num >= 10000) {
+                return (num / 10000).toFixed(1) + '万';
             }
-        }).mount('#app')
+            return num.toString();
+        }
+
+        function updateTable(data) {
+            const container = document.getElementById('weiboData');
+            container.innerHTML = '';
+            
+            data.forEach(item => {
+                const post = document.createElement('div');
+                post.className = 'weibo-post';
+                post.innerHTML = `
+                    <div class="user-info">
+                        <img src="/proxy/image?url=${encodeURIComponent(item.user_avatar)}" alt="${item.user_name}的头像" class="user-avatar" onerror="this.src='https://tvax3.sinaimg.cn/default/images/default_avatar_male_50.gif'">
+                        <div>
+                            <div class="user-name">${item.user_name}</div>
+                            <div class="post-time">${formatDate(item.created_at)}</div>
+                        </div>
+                    </div>
+                    <div class="post-content">${item.text}</div>
+                    <div class="interaction-bar">
+                        <div class="interaction-item">
+                            <i class="far fa-comment"></i>
+                            <span>${formatNumber(item.comments_count)}</span>
+                        </div>
+                        <div class="interaction-item">
+                            <i class="fas fa-retweet"></i>
+                            <span>${formatNumber(item.reposts_count)}</span>
+                        </div>
+                        <div class="interaction-item">
+                            <i class="far fa-heart"></i>
+                            <span>${formatNumber(item.attitudes_count)}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(post);
+            });
+        }
+
+        function refreshData() {
+            const loading = document.querySelector('.loading');
+            const refreshBtn = document.getElementById('refreshBtn');
+            loading.classList.add('active');
+            refreshBtn.disabled = true;
+
+            fetch('/refresh')
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        updateTable(result.data);
+                        document.getElementById('lastUpdated').textContent = new Date().toLocaleString('zh-CN');
+                    } else {
+                        alert(result.message || '刷新数据失败');
+                        console.error('Refresh failed:', result);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('刷新数据时发生错误');
+                })
+                .finally(() => {
+                    loading.classList.remove('active');
+                    refreshBtn.disabled = false;
+                });
+        }
+
+        // Initial data load
+        fetch('/data')
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    updateTable(result.data);
+                    document.getElementById('lastUpdated').textContent = result.last_updated;
+                }
+            })
+            .catch(error => console.error('Error:', error));
+
+        // Set up refresh button
+        document.getElementById('refreshBtn').addEventListener('click', refreshData);
     </script>
 </body>
 </html>

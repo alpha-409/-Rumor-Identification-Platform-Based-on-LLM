@@ -1,103 +1,77 @@
-# 基于LLM的谣言识别平台
+# 基于LLM的微博谣言识别平台
 
-基于大语言模型的微博谣言识别和舆情分析平台。实时获取微博热门话题，进行谣言识别和舆情分析。
-
-## 项目结构
-
-```
-.
-├── app.py              # Flask后端服务
-├── weibo_crawler.py    # 微博爬虫模块
-├── requirements.txt    # Python依赖
-├── frontend/          # Vue.js前端
-│   ├── src/
-│   │   ├── components/   # Vue组件
-│   │   │   ├── TopicItem.vue    # 话题项组件
-│   │   │   └── TopicList.vue    # 话题列表组件
-│   │   ├── services/    # API服务
-│   │   │   └── api.js   # API接口封装
-│   │   ├── App.vue      # 根组件
-│   │   └── main.js      # 入口文件
-│   ├── index.html       # HTML模板
-│   ├── vite.config.js   # Vite配置
-│   └── package.json     # 前端依赖
-├── data/              # 数据存储目录
-│   └── weibo_hot_topics.csv  # 微博话题数据
-├── cache/             # 缓存目录
-│   └── images/        # 图片缓存
-└── static/           # 静态资源目录
-```
-
-## 功能特性
-
-- 实时获取微博热门话题数据
-- 自动每10秒更新一次数据
-- 图片缓存和代理加载
-- 数据自动去重并保存至CSV
-- 支持手动/自动数据刷新
-- 显示话题详细信息（用户信息、图片、统计数据等）
+## 项目概述
+本项目是一个基于微博数据的谣言识别系统，通过采集微博数据，利用大语言模型(LLM)进行谣言识别和分析。系统包含数据采集、数据处理、谣言识别和结果展示等功能模块。
 
 ## 技术栈
+- Python 3.x
+- Flask/Django (Web框架)
+- Requests/Scrapy (数据采集)
+- Pandas (数据处理)
+- LLM模型 (谣言识别)
+- HTML/CSS/JS (前端展示)
 
-### 前端
-- Vue 3 (组合式API)
-- Vite
-- Axios
+## 文件结构
+```
+.
+├── app.py                # Web应用主程序
+├── weibo_scraper.py      # 微博数据采集脚本
+├── requirements.txt      # 依赖包列表
+├── weibo_data.csv        # 采集的微博数据
+├── templates/            # 前端模板
+│   └── index.html        # 主页面
+└── README.md             # 项目文档
+```
 
-### 后端
-- Python
-- Flask
-- Flask-CORS
+## 主要功能模块
+1. 数据采集模块
+   - 通过微博API或网页爬虫获取微博数据
+   - 数据包括：微博内容、发布时间、用户信息等
+   - 数据存储为CSV格式
 
-## 开发环境设置
+2. 数据处理模块
+   - 数据清洗和预处理
+   - 特征提取
+   - 数据格式转换
 
-1. 安装后端依赖：
+3. 谣言识别模块
+   - 基于LLM的谣言检测算法
+   - 情感分析
+   - 可信度评分
+
+4. 结果展示模块
+   - Web界面展示分析结果
+   - 可视化图表
+   - 谣言预警
+
+## 运行说明
+1. 安装依赖
 ```bash
 pip install -r requirements.txt
 ```
 
-2. 安装前端依赖：
+2. 运行数据采集
 ```bash
-cd frontend
-npm install
+自动运行，请注意，请将
+**weibo_scraper.py **
+替换为自己的微博的cookie，自行查找资料
 ```
 
-## 运行项目
-
-1. 启动Flask后端服务：
+3. 启动Web应用
 ```bash
 python app.py
 ```
-后端服务将在 http://localhost:5000 运行
 
-2. 启动Vue开发服务器：
-```bash
-cd frontend
-npm run dev
-```
-前端页面将在 http://localhost:5173 运行
+4. 访问应用
+打开浏览器访问 http://localhost:5000
 
-## 项目配置
-
-### 后端配置
-
-- 图片缓存配置（在app.py中）：
-  - `CACHE_DIR`: 缓存目录路径
-  - `CACHE_TIMEOUT`: 缓存过期时间（秒）
-  - `MAX_CACHE_SIZE`: 最大缓存大小
-
-### 前端配置
-
-- API代理配置（在vite.config.js中）：
-  - 开发环境下自动代理/api请求到后端服务
-
-## 数据存储
-
-- 话题数据以CSV格式存储在data目录
-- 图片缓存存储在cache/images目录
-- 自动清理过期和超量的缓存文件
-
-## 浏览器兼容性
-
-- 支持所有现代浏览器
-- 推荐使用Chrome、Firefox、Safari最新版本
+## 数据格式说明
+采集的微博数据存储在weibo_data.csv文件中，包含以下字段：
+- id: 微博ID
+- content: 微博内容
+- created_at: 发布时间
+- user_id: 用户ID
+- user_name: 用户名
+- reposts_count: 转发数
+- comments_count: 评论数
+- attitudes_count: 点赞数

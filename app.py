@@ -1,154 +1,136 @@
 from flask import Flask, render_template, jsonify, request, Response
-from weibo_crawler import fetch_weibo_hot_topics, save_to_csv
-from flask_cors import CORS
 import requests
+from weibo_scraper import WeiboScraper
+import pandas as pd
+from datetime import datetime
 import os
-import time
-import hashlib
-import glob
+from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
-CORS(app)
 
-# 图片缓存配置
-CACHE_DIR = 'cache/images'
-CACHE_TIMEOUT = 3600  # 1小时缓存过期
-MAX_CACHE_SIZE = 500 * 1024 * 1024  # 500MB 最大缓存大小
+# Initialize scheduler
+scheduler = BackgroundScheduler()
 
-def get_cache_filename(url):
-    """生成缓存文件名"""
-    # 使用URL的MD5作为文件名
-    hash_object = hashlib.md5(url.encode())
-    filename = hash_object.hexdigest()
-    # 保留原始扩展名
-    ext = os.path.splitext(url)[1].lower()
-    if ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
-        filename += ext
-    else:
-        filename += '.jpg'  # 默认使用.jpg
-    return os.path.join(CACHE_DIR, filename)
-
-def clean_old_cache():
-    """清理过期和超量的缓存文件"""
+# Function to read the data from CSV
+def read_data():
+    filename = 'weibo_data.csv'
     try:
-        if not os.path.exists(CACHE_DIR):
-            return
-
-        # 获取所有缓存文件
-        cache_files = glob.glob(os.path.join(CACHE_DIR, '*.*'))
-        now = time.time()
-        
-        # 按照修改时间排序
-        cache_files.sort(key=lambda x: os.path.getmtime(x))
-        
-        total_size = 0
-        for file_path in cache_files:
-            # 删除过期文件
-            if now - os.path.getmtime(file_path) > CACHE_TIMEOUT:
-                os.remove(file_path)
-                continue
-                
-            # 计算总大小并在超过限制时删除最旧的文件
-            total_size += os.path.getsize(file_path)
-            if total_size > MAX_CACHE_SIZE:
-                os.remove(file_path)
-                
+        if os.path.exists(filename):
+            df = pd.read_csv(filename)
+            df['created_at'] = pd.to_datetime(df['created_at'])
+            df = df.sort_values('created_at', ascending=False)
+            return df.to_dict('records')
+        else:
+            print("Data file does not exist")
     except Exception as e:
-        print(f"Error cleaning cache: {e}")
+        print(f"Error reading data: {e}")
+    return []
+
+# Scrape function that is triggered every 10 seconds
+def scrape_data():
+    try:
+        scraper = WeiboScraper()
+        filename = scraper.run()
+        if filename:
+            print("Data scraped successfully")
+            data = read_data()
+            if data:
+                print("Data refreshed")
+                print(f"Total records after refresh: {len(data)}")
+    except Exception as e:
+        print(f"Error scraping data: {e}")
+
+# Schedule the scraper to run every 10 seconds
+scheduler.add_job(scrape_data, 'interval', seconds=5)
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/api/fetch-hot-topics')
-def get_hot_topics():
-    topics = fetch_weibo_hot_topics()
-    if topics:
-        # Save to CSV
-        filepath = save_to_csv(topics)
+@app.route('/refresh')
+def refresh_data():
+    try:
+        scraper = WeiboScraper()
+        filename = scraper.run()
+        if filename:
+            data = read_data()
+            if data:
+                return jsonify({
+                    "success": True,
+                    "message": "Data refreshed successfully",
+                    "data": data
+                })
+        print("No data returned from scraper")
         return jsonify({
-            'status': 'success',
-            'data': topics,
-            'saved_to': filepath
+            "success": False,
+            "message": "No data available from Weibo"
         })
-    else:
+    except Exception as e:
+        print(f"Error refreshing data: {e}")
         return jsonify({
-            'status': 'error',
-            'message': 'Failed to fetch hot topics'
-        }), 500
+            "success": False,
+            "message": f"Error refreshing data: {str(e)}"
+        })
 
-@app.route('/api/proxy-image')
+@app.route('/data')
+def get_data():
+    try:
+        data = read_data()
+        if not data:
+            print("No existing data found, fetching new data...")
+            scraper = WeiboScraper()
+            filename = scraper.run()
+            if filename:
+                data = read_data()
+        
+        if data:
+            return jsonify({
+                "success": True,
+                "data": data,
+                "last_updated": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
+            
+        return jsonify({
+            "success": False,
+            "message": "Unable to fetch Weibo data"
+        })
+    except Exception as e:
+        print(f"Error getting data: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Error getting data: {str(e)}"
+        })
+
+@app.route('/proxy/image')
 def proxy_image():
-    """带缓存的图片代理"""
-    url = request.args.get('url')
-    if not url:
-        return 'Missing URL parameter', 400
-
-    # 创建缓存目录
-    os.makedirs(CACHE_DIR, exist_ok=True)
-
-    # 生成缓存文件路径
-    cache_file = get_cache_filename(url)
+    image_url = request.args.get('url')
+    if not image_url or image_url == 'undefined':
+        return Response('Invalid URL', status=400)
 
     try:
-        # 检查缓存是否存在且未过期
-        if os.path.exists(cache_file):
-            file_age = time.time() - os.path.getmtime(cache_file)
-            if file_age < CACHE_TIMEOUT:
-                with open(cache_file, 'rb') as f:
-                    content = f.read()
-                    content_type = 'image/jpeg'
-                    if cache_file.endswith('.png'):
-                        content_type = 'image/png'
-                    elif cache_file.endswith('.gif'):
-                        content_type = 'image/gif'
-                    elif cache_file.endswith('.webp'):
-                        content_type = 'image/webp'
-                    return Response(content, 
-                                 mimetype=content_type,
-                                 headers={'Cache-Control': 'public, max-age=31536000'})
-
-        # 如果缓存不存在或已过期，重新获取图片
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            'Referer': 'https://weibo.com/',
-            'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive'
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            "Referer": "https://weibo.com/",
+            "Cookie": "UOR=www.google.com.hk,open.weibo.com,www.google.com.hk; SINAGLOBAL=4257564672237.1353.1739195402823"
         }
-        
-        response = requests.get(url, headers=headers)
+        response = requests.get(image_url, headers=headers, stream=True)
         response.raise_for_status()
-        content = response.content
-        content_type = response.headers.get('content-type', 'image/jpeg')
-        
-        # 保存到缓存
-        with open(cache_file, 'wb') as f:
-            f.write(content)
-
-        # 清理旧缓存
-        clean_old_cache()
-
-        # 返回图片内容
         return Response(
-            content,
-            mimetype=content_type,
-            headers={
-                'Cache-Control': 'public, max-age=31536000'
-            }
+            response.content,
+            content_type=response.headers['content-type'],
+            status=response.status_code
         )
     except Exception as e:
-        print(f"Error proxying image {url}: {str(e)}")
-        return str(e), 500
+        print(f"Error proxying image: {e}")
+        return Response('Error fetching image', status=500)
 
 if __name__ == '__main__':
-    # Create necessary directories
-    os.makedirs('templates', exist_ok=True)
-    os.makedirs('static', exist_ok=True)
-    os.makedirs('data', exist_ok=True)
-    os.makedirs(CACHE_DIR, exist_ok=True)
+    # Enable more detailed error logging
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
     
-    # 启动时清理旧缓存
-    clean_old_cache()
-    
+    # Start the scheduler
+    scheduler.start()
+
     app.run(debug=True)
