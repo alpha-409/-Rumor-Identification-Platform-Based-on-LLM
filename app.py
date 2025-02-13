@@ -125,12 +125,12 @@ def refresh_data():
         scraper = WeiboScraper()
         filename = scraper.run()
         if filename:
-            data = read_data()
-            if data:
+            # 只检查数据是否存在，不返回数据内容
+            if os.path.exists(filename):
                 return jsonify({
                     "success": True,
                     "message": "Data refreshed successfully",
-                    "data": data
+                    "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 })
         print("No data returned from scraper")
         return jsonify({

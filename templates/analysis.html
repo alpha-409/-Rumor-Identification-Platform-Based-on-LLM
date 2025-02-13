@@ -335,10 +335,32 @@
             }
         }
 
+        // 添加刷新函数
+        async function refreshData() {
+            try {
+                // 先刷新数据
+                const response = await fetch('/refresh');
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 数据刷新成功后重新加载图表
+                    await loadChartData();
+                    console.log('数据刷新成功');
+                } else {
+                    console.error('刷新失败:', result.message);
+                }
+            } catch (error) {
+                console.error('刷新数据时发生错误:', error);
+            }
+        }
+
+        // 添加定时刷新
+        setInterval(refreshData, 30000); // 每30秒刷新一次
+
         // 初始加载
         loadChartData();
 
-        // 窗口大小改变时重绘图表
+        // 监听窗口大小变化
         window.addEventListener('resize', function() {
             wordCloudChart.resize();
             timeHeatmap.resize();
