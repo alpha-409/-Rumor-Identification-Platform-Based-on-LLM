@@ -107,6 +107,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts-wordcloud@2.1.0/dist/echarts-wordcloud.min.js"></script>
     <script>
         // 初始化图表
         const wordCloudChart = echarts.init(document.getElementById('wordCloudChart'));
@@ -115,39 +116,40 @@
 
         // 词云图配置
         const wordCloudOption = {
+            title: {
+                text: '',
+                left: 'center'
+            },
             tooltip: {
-                show: true
+                show: true,
+                formatter: function(params) {
+                    return `${params.name}: ${params.value}`;
+                }
             },
             series: [{
                 type: 'wordCloud',
                 shape: 'circle',
-                left: 'center',
-                top: 'center',
-                width: '90%',
-                height: '90%',
-                right: null,
-                bottom: null,
-                sizeRange: [12, 60],
-                rotationRange: [-45, 45],
+                width: '100%',
+                height: '100%',
+                sizeRange: [14, 60],
+                rotationRange: [-90, 90],
                 rotationStep: 45,
                 gridSize: 8,
                 drawOutOfBound: false,
                 textStyle: {
-                    fontFamily: 'sans-serif',
-                    fontWeight: 'bold',
+                    fontFamily: 'Microsoft YaHei',
+                    fontWeight: 'normal',
                     color: function () {
-                        return 'rgb(' + [
-                            Math.round(Math.random() * 160 + 95),
-                            Math.round(Math.random() * 160 + 95),
-                            Math.round(Math.random() * 160 + 95)
-                        ].join(',') + ')';
+                        const colors = [
+                            '#FF8200', '#1f77b4', '#ff7f0e', '#2ca02c', 
+                            '#d62728', '#9467bd', '#8c564b', '#e377c2'
+                        ];
+                        return colors[Math.floor(Math.random() * colors.length)];
                     }
                 },
                 emphasis: {
-                    focus: 'self',
                     textStyle: {
-                        shadowBlur: 10,
-                        shadowColor: '#333'
+                        color: '#FF8200'
                     }
                 },
                 data: []
@@ -256,8 +258,58 @@
                 const wordcloudResponse = await fetch('/analysis/wordcloud');
                 const wordcloudData = await wordcloudResponse.json();
                 if (wordcloudData.success) {
-                    wordCloudOption.series[0].data = wordcloudData.data;
-                    wordCloudChart.setOption(wordCloudOption);
+                    // 过滤和处理数据
+                    const filteredData = wordcloudData.data
+                        .filter(item => item.name && item.name.trim() !== '')
+                        .map(item => {
+                            const cleanName = item.name.replace(/[\r\n]/g, '').trim();
+                            const val = parseInt(item.value);
+                            const fontSize = Math.min(Math.max(Math.log2(val) * 6, 14), 60);
+                            return {
+                                name: cleanName,
+                                value: val
+                            };
+                        })
+                        .filter(item => item.name !== '')
+                        .sort((a, b) => b.value - a.value)
+                        .slice(0, 100); // 限制显示前100个词
+
+                    console.log('处理后的词云数据:', filteredData);
+
+                    const updatedOption = {
+                        ...wordCloudOption,
+                        series: [{
+                            type: 'wordCloud',
+                            shape: 'circle',
+                            width: '100%',
+                            height: '100%',
+                            sizeRange: [14, 60],
+                            rotationRange: [-45, 45],
+                            rotationStep: 45,
+                            gridSize: 6,
+                            drawOutOfBound: false,
+                            layoutAnimation: true,
+                            textStyle: {
+                                fontFamily: 'Microsoft YaHei',
+                                fontWeight: 'normal',
+                                color: function () {
+                                    const colors = ['#FF8200', '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2'];
+                                    return colors[Math.floor(Math.random() * colors.length)];
+                                }
+                            },
+                            emphasis: {
+                                textStyle: {
+                                    color: '#FF8200',
+                                    shadowBlur: 10,
+                                    shadowColor: 'rgba(0, 0, 0, 0.3)'
+                                }
+                            },
+                            data: filteredData
+                        }]
+                    };
+                    wordCloudChart.setOption(updatedOption, true);
+                } else {
+                    console.error('词云数据加载失败:', wordcloudData);
                 }
 
                 // 加载时间分布数据
