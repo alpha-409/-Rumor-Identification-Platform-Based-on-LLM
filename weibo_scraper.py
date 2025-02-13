@@ -122,9 +122,9 @@ class WeiboScraper:
                 # Remove duplicates based on created_at and text
                 df = pd.concat([existing_df, df]).drop_duplicates(subset=['created_at', 'text'], keep='last')
                 # Sort by created_at in descending order
-                df = df.sort_values('created_at', ascending=False)
+                # df = df.sort_values('created_at', ascending=False)
                 # Keep only the most recent 1000 posts
-                df = df.head(1000)
+                # df = df.head(1000)
             
             # Convert datetime back to string for storage
             df['created_at'] = df['created_at'].dt.strftime('%Y-%m-%d %H:%M:%S')

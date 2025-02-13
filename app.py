@@ -75,6 +75,9 @@ def refresh_data():
 @app.route('/data')
 def get_data():
     try:
+        page = int(request.args.get('page', 1))
+        per_page = 10
+        
         data = read_data()
         if not data:
             print("No existing data found, fetching new data...")
@@ -84,9 +87,24 @@ def get_data():
                 data = read_data()
         
         if data:
+            # Calculate pagination
+            total_items = len(data)
+            total_pages = (total_items + per_page - 1) // per_page
+            
+            # Get slice of data for current page
+            start_idx = (page - 1) * per_page
+            end_idx = start_idx + per_page
+            page_data = data[start_idx:end_idx]
+            
             return jsonify({
                 "success": True,
-                "data": data,
+                "data": page_data,
+                "pagination": {
+                    "current_page": page,
+                    "total_pages": total_pages,
+                    "total_items": total_items,
+                    "per_page": per_page
+                },
                 "last_updated": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             })
             

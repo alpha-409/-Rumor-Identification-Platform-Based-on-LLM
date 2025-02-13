@@ -103,6 +103,14 @@
             background-color: #e67300;
             border-color: #e67300;
         }
+        .pagination .page-link {
+            color: #ff8200;
+        }
+        .pagination .page-item.active .page-link {
+            background-color: #ff8200;
+            border-color: #ff8200;
+            color: white;
+        }
     </style>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -125,9 +133,17 @@
         <div id="weiboData" class="mt-4">
             <!-- Weibo posts will be inserted here -->
         </div>
+        
+        <nav aria-label="Page navigation" class="mt-4 d-flex justify-content-center">
+            <ul class="pagination" id="pagination">
+                <!-- Pagination controls will be inserted here -->
+            </ul>
+        </nav>
     </div>
 
     <script>
+        let currentPage = 1;
+
         function formatDate(dateStr) {
             const date = new Date(dateStr);
             const now = new Date();
@@ -148,6 +164,74 @@
                 return (num / 10000).toFixed(1) + '万';
             }
             return num.toString();
+        }
+
+        function renderPagination(pagination) {
+            const paginationElement = document.getElementById('pagination');
+            paginationElement.innerHTML = '';
+            const currentPage = pagination.current_page;
+            const totalPages = pagination.total_pages;
+            
+            // Helper function to create page items
+            function createPageItem(pageNum, text = pageNum, disabled = false) {
+                const li = document.createElement('li');
+                li.className = `page-item ${pageNum === currentPage ? 'active' : ''} ${disabled ? 'disabled' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" data-page="${pageNum}">${text}</a>`;
+                return li;
+            }
+
+            // Previous button
+            paginationElement.appendChild(
+                createPageItem(currentPage - 1, '上一页', currentPage === 1)
+            );
+
+            // First page
+            paginationElement.appendChild(createPageItem(1));
+
+            let startPage = Math.max(2, currentPage - 1);
+            let endPage = Math.min(totalPages - 1, currentPage + 1);
+
+            // Add ellipsis after first page if needed
+            if (startPage > 2) {
+                const ellipsis = document.createElement('li');
+                ellipsis.className = 'page-item disabled';
+                ellipsis.innerHTML = '<a class="page-link">...</a>';
+                paginationElement.appendChild(ellipsis);
+            }
+
+            // Add page numbers around current page
+            for (let i = startPage; i <= endPage; i++) {
+                paginationElement.appendChild(createPageItem(i));
+            }
+
+            // Add ellipsis before last page if needed
+            if (endPage < totalPages - 1) {
+                const ellipsis = document.createElement('li');
+                ellipsis.className = 'page-item disabled';
+                ellipsis.innerHTML = '<a class="page-link">...</a>';
+                paginationElement.appendChild(ellipsis);
+            }
+
+            // Last page (if not already added)
+            if (totalPages > 1) {
+                paginationElement.appendChild(createPageItem(totalPages));
+            }
+
+            // Next button
+            paginationElement.appendChild(
+                createPageItem(currentPage + 1, '下一页', currentPage === totalPages)
+            );
+
+            // Add event listeners to pagination controls
+            paginationElement.querySelectorAll('.page-link:not(.disabled)').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const newPage = parseInt(e.target.dataset.page);
+                    if (!isNaN(newPage) && newPage !== currentPage) {
+                        loadData(newPage);
+                    }
+                });
+            });
         }
 
         function updateTable(data) {
@@ -185,6 +269,20 @@
             });
         }
 
+        function loadData(page = 1) {
+            currentPage = page;
+            fetch(`/data?page=${page}`)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        updateTable(result.data);
+                        renderPagination(result.pagination);
+                        document.getElementById('lastUpdated').textContent = result.last_updated;
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
         function refreshData() {
             const loading = document.querySelector('.loading');
             const refreshBtn = document.getElementById('refreshBtn');
@@ -195,8 +293,7 @@
                 .then(response => response.json())
                 .then(result => {
                     if (result.success) {
-                        updateTable(result.data);
-                        document.getElementById('lastUpdated').textContent = new Date().toLocaleString('zh-CN');
+                        loadData(1); // Reset to first page after refresh
                     } else {
                         alert(result.message || '刷新数据失败');
                         console.error('Refresh failed:', result);
@@ -213,15 +310,7 @@
         }
 
         // Initial data load
-        fetch('/data')
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    updateTable(result.data);
-                    document.getElementById('lastUpdated').textContent = result.last_updated;
-                }
-            })
-            .catch(error => console.error('Error:', error));
+        loadData();
 
         // Set up refresh button
         document.getElementById('refreshBtn').addEventListener('click', refreshData);
